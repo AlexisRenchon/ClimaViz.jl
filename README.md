@@ -32,6 +32,7 @@ To be implemented:
 - better layout (Bonito.Card, less gaps, etc.)
 - colorbar
 - Seasonal plot of var
+- Make a helper function to return path to latest longruns (land, atmos)
 
 ## Requests
 New ideas are welcome. Anything is possible so don't hesitate. 

@@ -33,5 +33,5 @@ To be implemented:
 - colorbar
 - Seasonal plot of var
 
-## Request
+## Requests
 New ideas are welcome. Anything is possible so don't hesitate. 

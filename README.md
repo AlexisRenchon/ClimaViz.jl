@@ -28,3 +28,10 @@ To be implemented:
 - slider for height h
 - textbox for var (so user can use either menu or textbox)
 - ax for vertical profile of a var at time t, lon and lat, by clicking on a location
+- play button
+- better layout (Bonito.Card, less gaps, etc.)
+- colorbar
+- Seasonal plot of var
+
+## Request
+New ideas are welcome. Anything is possible so don't hesitate. 

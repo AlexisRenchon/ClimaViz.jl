@@ -4,8 +4,9 @@ function dashboard(path)
 
     app = Bonito.App(title="CliMA dashboard") do
 
-        fig = Figure(size = (2000, 2000))
+        fig = Figure(size = (2000, 1000))
         ax = GeoAxis(fig[1, 1])
+        lines!(ax, GeoMakie.coastlines(), color = :black)
 
         simdir = ClimaAnalysis.SimDir(path)
         vars = collect(keys(simdir.vars))

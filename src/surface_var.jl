@@ -19,7 +19,7 @@ function surface_var(var_selected, time_selected, simdir; fig = fig, ax = ax, lo
 
     var_data = @lift($var_slice.data)
 
-    p = surface!(ax, lon, lat, var_data)
+    p = surface!(ax, lon, lat, var_data, shading = NoShading, transparency = true, alpha = 0.8)
 
     return fig
 end

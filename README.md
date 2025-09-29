@@ -27,3 +27,4 @@ implemented:
 
 ## Requests
 New ideas are welcome. Anything is possible so don't hesitate.
+Current to do list: see [issue](https://github.com/AlexisRenchon/ClimaViz.jl/issues/1)

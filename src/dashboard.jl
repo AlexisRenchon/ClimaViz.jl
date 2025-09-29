@@ -20,11 +20,20 @@ function dashboard(path)
         time_slider = Bonito.StylableSlider(1:length(times[]))
         time_selected = time_slider.value # Observable
 
+        play_button = Bonito.Button("Play")
+        on(play_button) do i
+            println("Playing animation")
+                for t in 1:length(times[])
+                    time_selected[] = t
+                    sleep(0.1)
+                end
+        end
+
 #        height_selected = Bonito.StylableSlider(1:length(heights))
 
         surface_var(var_selected, time_selected, simdir; fig, ax, lon, lat)
 
-        return layout(var_menu, time_slider, fig)
+        return layout(var_menu, time_slider, play_button, fig)
     end
 
 end

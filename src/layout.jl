@@ -1,13 +1,13 @@
 export layout
 
-function layout(var_menu, time_slider, fig)
+function layout(var_menu, time_slider, play_button, fig)
     style = Bonito.Styles(
                           "font-size" => "1.5rem",
                          )
     Bonito.Grid(
                 Bonito.Card(
                             Bonito.Col(
-                                       Bonito.DOM.h3("Menu"),
+                                       Bonito.Label("Menu"; style = Bonito.Styles("font-size" => "2rem", "text-align" => "center")),
                                        Bonito.Row(
                                                   Bonito.Label("Variable: "; style),
                                                   var_menu;
@@ -17,8 +17,13 @@ function layout(var_menu, time_slider, fig)
                                                   Bonito.Label("Time: "; style),
                                                   time_slider;
                                                   align_items="start",
+                                                 ),
+                                       Bonito.Row(
+                                                  Bonito.Label("Animate: "; style),
+                                                  play_button;
+                                                  align_items = "start",
                                                  );
-                                       align_items="start",
+                                       height="auto",
                                       )
                            ),
                 Bonito.Card(fig);

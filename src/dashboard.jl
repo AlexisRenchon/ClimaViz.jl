@@ -5,8 +5,7 @@ function dashboard(path)
     app = Bonito.App(title="CliMA dashboard") do
 
         fig = Figure(size = (2000, 1000))
-        ax = GeoAxis(fig[1, 1])
-        lines!(ax, GeoMakie.coastlines(), color = :black)
+        ax = GeoAxis(fig[1, 1], title = "test")
 
         simdir = ClimaAnalysis.SimDir(path)
         vars = collect(keys(simdir.vars))
@@ -21,17 +20,20 @@ function dashboard(path)
         time_selected = time_slider.value # Observable
 
         play_button = Bonito.Button("Play")
+        n_times = length(times[])
         on(play_button) do i
             println("Playing animation")
-                for t in 1:length(times[])
+                for t in 1:n_times
                     time_selected[] = t
-                    sleep(0.1)
+                    sleep(2/n_times)
                 end
         end
 
 #        height_selected = Bonito.StylableSlider(1:length(heights))
 
         surface_var(var_selected, time_selected, simdir; fig, ax, lon, lat)
+        lines!(ax, GeoMakie.coastlines(), color = :black)
+        DataInspector(ax)
 
         return layout(var_menu, time_slider, play_button, fig)
     end

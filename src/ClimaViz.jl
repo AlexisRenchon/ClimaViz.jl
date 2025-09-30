@@ -2,6 +2,7 @@ module ClimaViz
 
 import ClimaAnalysis
 import Bonito
+import Statistics
 using WGLMakie
 using GeoMakie
 

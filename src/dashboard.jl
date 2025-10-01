@@ -33,9 +33,14 @@ function dashboard(path)
 
         surface_var(var_selected, time_selected, simdir; fig, ax, lon, lat)
         lines!(ax, GeoMakie.coastlines(), color = :black)
-        DataInspector(ax)
+#        DataInspector(ax)
 
         return layout(var_menu, time_slider, play_button, fig)
     end
 
+IPa = "127.0.0.1"
+port = 8080
+server = Bonito.Server(IPa, port; proxy_url = "http://localhost:8080")
+Bonito.route!(server, "/" => app)
+wait(server)
 end

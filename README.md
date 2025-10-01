@@ -12,12 +12,12 @@ Will launch a dashboard in a web browser.
 It works from HPC as well, all you need is ssh as usual but with port forwarding
 
 ```shell
-ssh -R 9384:localhost:9384 user@ssh.example.com
+ssh -L 8080:localhost:8080 user@ssh.example.com
 ```
 
 and then open this URL on your local browser:
 
-http://localhost:9384/browser-display
+http://localhost:8080/
 
 ## Features
 

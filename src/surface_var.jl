@@ -1,43 +1,12 @@
 export surface_var
 
-function surface_var(var_selected, time_selected, simdir; fig = fig, ax = ax, lon = lon, lat = lat)
+# TO CHECK: I believe tair is Float32, and other are Float64, which cause problems,
+# because Observables need to remain same type,
+# and selecting tair changes type ...
 
-    var_slice = @lift(
-                      if haskey(get(simdir, $var_selected).dims, "z")
-            ClimaAnalysis.slice(
-                                get(simdir, $var_selected),
-                                time = get(simdir, $var_selected).dims["time"][$time_selected],
-                                z = get(simdir, $var_selected).dims["z"][1]
-                               )
-        else
-            ClimaAnalysis.slice(
-                                get(simdir, $var_selected),
-                                time = get(simdir, $var_selected).dims["time"][$time_selected]
-                               )
-        end
-                     )
+function surface_var(var_sliced, limits; fig = fig, ax = ax, lon = lon, lat = lat)
 
-    var_slice_alltimes = @lift(
-                      if haskey(get(simdir, $var_selected).dims, "z")
-            ClimaAnalysis.slice(
-                                get(simdir, $var_selected),
-                                z = get(simdir, $var_selected).dims["z"][1]
-                               )
-        else
-            ClimaAnalysis.slice(
-                                get(simdir, $var_selected),
-                               )
-        end
-                     )
-
-    var_data = @lift($var_slice.data)
-    var_alltimes_data = @lift($var_slice_alltimes.data)
-
-    low_limit = @lift(Statistics.quantile(vec(filter(!isnan, $var_alltimes_data)), 0.1))
-    high_limit = @lift(Statistics.quantile(vec(filter(!isnan, $var_alltimes_data)), 0.9))
-    limits = @lift(($low_limit, $high_limit))
-
-    p = surface!(ax, lon, lat, var_data,
+    p = surface!(ax, lon, lat, var_sliced,
                 colorrange = limits,
                lowclip = :blue,
               highclip= :yellow,
@@ -60,6 +29,6 @@ function surface_var(var_selected, time_selected, simdir; fig = fig, ax = ax, lo
 #
 ## Wrap in Observable{Any}
 #setfield!(ax, :title, Observable{Any}(title_string[]))
-
+fig
     return fig
 end

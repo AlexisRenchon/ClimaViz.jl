@@ -1,5 +1,8 @@
 function var_slice(
-        var::ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 4}, String, Dict{Union{AbstractString, Symbol}, Any}},
+        var::Union{
+                   ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 4}, String, Dict{Union{AbstractString, Symbol}, Any}},
+                   ClimaAnalysis.Var.OutputVar{Vector, Array{Float32, 4}, String, Dict{Union{AbstractString, Symbol}, Any}}
+                  },
         time_selected
     )
     var_t =     ClimaAnalysis.slice(
@@ -11,7 +14,10 @@ function var_slice(
 end
 
 function var_slice(
-        var::ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 3}, String, Dict{Union{AbstractString, Symbol}, Any}},
+        var::Union{
+                   ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 3}, String, Dict{Union{AbstractString, Symbol}, Any}},
+                   ClimaAnalysis.Var.OutputVar{Vector, Array{Float32, 3}, String, Dict{Union{AbstractString, Symbol}, Any}}
+                  },
         time_selected
     )
     var_t =    ClimaAnalysis.slice(
@@ -22,7 +28,10 @@ function var_slice(
 end
 
 function get_limits(
-        var::ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 4}, String, Dict{Union{AbstractString, Symbol}, Any}},
+        var::Union{
+                   ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 4}, String, Dict{Union{AbstractString, Symbol}, Any}},
+                   ClimaAnalysis.Var.OutputVar{Vector, Array{Float32, 4}, String, Dict{Union{AbstractString, Symbol}, Any}}
+                  },
         time_selected
     )
     var_allt =  ClimaAnalysis.slice(
@@ -36,7 +45,10 @@ function get_limits(
 end
 
 function get_limits(
-        var::ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 3}, String, Dict{Union{AbstractString, Symbol}, Any}},
+        var::Union{
+                   ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 3}, String, Dict{Union{AbstractString, Symbol}, Any}},
+                   ClimaAnalysis.Var.OutputVar{Vector, Array{Float32, 3}, String, Dict{Union{AbstractString, Symbol}, Any}}
+                  },
         time_selected
     )
     var_allt =  ClimaAnalysis.slice(

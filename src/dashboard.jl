@@ -3,7 +3,8 @@ function dashboard(path)
     app = Bonito.App(title="CliMA dashboard") do
 
         fig = Figure(size = (2000, 1000))
-        ax = GeoAxis(fig[1, 1], title = "test")
+        title = Observable("title")
+        ax = GeoAxis(fig[1, 1], title = title)
 
         simdir = ClimaAnalysis.SimDir(path)
         vars = collect(keys(simdir.vars))
@@ -19,7 +20,9 @@ function dashboard(path)
 
         var = Observable{Union{
                                ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 4}, String, Dict{Union{AbstractString, Symbol}, Any}},
-                               ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 3}, String, Dict{Union{AbstractString, Symbol}, Any}}
+                               ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 3}, String, Dict{Union{AbstractString, Symbol}, Any}},
+                               ClimaAnalysis.Var.OutputVar{Vector, Array{Float32, 4}, String, Dict{Union{AbstractString, Symbol}, Any}},
+                               ClimaAnalysis.Var.OutputVar{Vector, Array{Float32, 3}, String, Dict{Union{AbstractString, Symbol}, Any}},
                               }
                         }(get(simdir, var_selected[]))
 
@@ -29,10 +32,13 @@ function dashboard(path)
         surface_var(var_sliced, limits; fig, ax, lon, lat)
         lines!(ax, GeoMakie.coastlines(), color = :black)
 
+        title[] = ClimaAnalysis.long_name(var[])
+
         on(var_menu.value) do v
             var[] = get(simdir, v)
             var_sliced[] = var_slice(var[], time_selected[])
             limits[] = get_limits(var[], time_selected[])
+            title[] = ClimaAnalysis.long_name(var[])
         end
 
         on(time_slider.value) do t
@@ -40,14 +46,14 @@ function dashboard(path)
         end
 
         play_button = Bonito.Button("Play")
-#        n_times = length(times)
-#        on(play_button) do _
-#            println("Playing animation")
-#                for t in 1:n_times
-#                    time_selected[] = t
-#                    sleep(2/n_times)
-#                end
-#        end
+        n_times = length(times)
+        on(play_button) do _
+            println("Playing animation")
+                for t in 1:n_times
+                    var_sliced[] = var_slice(var[], t)
+                    sleep(2/n_times)
+                end
+        end
 
 #        height_selected = Bonito.StylableSlider(1:length(heights))
 

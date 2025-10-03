@@ -26,7 +26,7 @@ function layout(var_menu, time_slider, play_button, fig)
                                        height="auto",
                                       )
                            ),
-                Bonito.Card(fig);
+                Bonito.Card(fig; shadow_size="0");
                 columns="10% 90%",
                )
 end

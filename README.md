@@ -22,11 +22,11 @@ http://localhost:8080/
 ## Features
 
 implemented:
-- global map of variables var at time t
+- global map of variables var at time t, height h
 - animate with play
 
 ## Requests
 New ideas are welcome. Anything is possible so don't hesitate.
 Current to do list: see [issue](https://github.com/AlexisRenchon/ClimaViz.jl/issues/1)
 
-<img width="1432" height="705" alt="image" src="https://github.com/user-attachments/assets/7b7eca6d-d3df-4f16-a6e3-efdb7adb7cb7" />
+<img width="1507" height="694" alt="image" src="https://github.com/user-attachments/assets/03e89ccb-30b4-4f6a-ad7e-54ff0dce166f" />

@@ -1,6 +1,6 @@
 export layout
 
-function layout(var_menu, time_slider, play_button, fig)
+function layout(var_menu, time_slider, height_slider, play_button, fig)
     style = Bonito.Styles(
                           "font-size" => "1.5rem",
                          )
@@ -16,6 +16,11 @@ function layout(var_menu, time_slider, play_button, fig)
                                        Bonito.Row(
                                                   Bonito.Label("Time: "; style),
                                                   time_slider;
+                                                  align_items="start",
+                                                 ),
+                                       Bonito.Row(
+                                                  Bonito.Label("Height: "; style),
+                                                  height_slider;
                                                   align_items="start",
                                                  ),
                                        Bonito.Row(

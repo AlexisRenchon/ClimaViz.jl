@@ -11,6 +11,7 @@ include("dashboard.jl")
 include("surface_var.jl")
 include("layout.jl")
 include("load_data.jl")
+include("profile_var.jl")
 
 export dashboard
 

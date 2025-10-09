@@ -1,6 +1,6 @@
 export layout
 
-function layout(var_menu, time_slider, height_slider, play_button, fig)
+function layout(var_menu, time_slider, height_slider, play_button, fig, fig_profile)
     style = Bonito.Styles(
                           "font-size" => "1.5rem",
                          )
@@ -31,7 +31,8 @@ function layout(var_menu, time_slider, height_slider, play_button, fig)
                                        height="auto",
                                       )
                            ),
-                Bonito.Card(fig; shadow_size="0");
+                Bonito.Card(fig; shadow_size="0"),
+                Bonito.Card(fig_profile; shadow_size="0");
                 columns="10% 90%",
                )
 end

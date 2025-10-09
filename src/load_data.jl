@@ -63,3 +63,21 @@ function get_limits(
     high_limit = Statistics.quantile(vec(filter(!isnan, var_allt_data)), 0.95)
     limits = (low_limit, high_limit)
 end
+
+function get_profile(
+        var::Union{
+                   ClimaAnalysis.Var.OutputVar{Vector{Float64}, Array{Float64, 4}, String, Dict{Union{AbstractString, Symbol}, Any}},
+                   ClimaAnalysis.Var.OutputVar{Vector, Array{Float32, 4}, String, Dict{Union{AbstractString, Symbol}, Any}}
+                  },
+        lon,
+        lat,
+        time_selected;
+        )
+    var_profile = ClimaAnalysis.slice(
+        var,
+        lon = lon,
+        lat = lat,
+        time = var.dims["time"][time_selected]
+       )
+    return var_profile.data
+end

@@ -1,25 +1,25 @@
 export surface_var
 
-# TO CHECK: I believe tair is Float32, and other are Float64, which cause problems,
-# because Observables need to remain same type,
-# and selecting tair changes type ...
-
 function surface_var(var_sliced, limits; fig = fig, ax = ax, lon = lon, lat = lat)
 
     p = surface!(ax, lon, lat, var_sliced,
                  colorrange = limits,
-                 lowclip = :white,
-                 highclip= :red,
+                 lowclip = (:black, 0.7),
+                 highclip = (:yellow, 0.8),
                  shading = NoShading,
-                 colormap = :PuRd,
-                ) # transparency = true, alpha = 0.8)
+                 colormap = :thermal,
+                 transparency = true,
+                 alpha = 0.8,
+                )
 
+    # Colorbar on the right side, more compact
     Colorbar(
-             fig[2, 1],
+             fig[1, 2],  # Changed from [2, 1] to [1, 2] - right side
              p,
-             vertical = false,
+             vertical = true,  # Changed to vertical
              colorrange = limits,
-             ticklabelsize = 20.0,
+             width = 15,  # Compact width
+             ticklabelsize = 16.0,
             )
 
     fig

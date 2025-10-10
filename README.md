@@ -29,4 +29,4 @@ implemented:
 New ideas are welcome. Anything is possible so don't hesitate.
 Current to do list: see [issue](https://github.com/AlexisRenchon/ClimaViz.jl/issues/1)
 
-<img width="1507" height="694" alt="image" src="https://github.com/user-attachments/assets/03e89ccb-30b4-4f6a-ad7e-54ff0dce166f" />
+<img width="1529" height="1035" alt="image" src="https://github.com/user-attachments/assets/dc07578c-4b4b-4766-b696-1a00575f948c" />

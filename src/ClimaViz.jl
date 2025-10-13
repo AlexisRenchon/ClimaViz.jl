@@ -7,10 +7,9 @@ import Dates
 using WGLMakie
 using GeoMakie
 
-include("load_data.jl")
-include("surface_var.jl")
-include("profile_var.jl")
-include("timeseries_var.jl")
+include("utils.jl")
+include("figures.jl")
+include("events.jl")
 include("layout.jl")
 include("dashboard.jl")
 

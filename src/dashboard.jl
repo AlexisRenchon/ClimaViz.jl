@@ -9,13 +9,16 @@ function dashboard(path)
         title = Observable("title")
         ax = GeoAxis(fig[1, 1], title = title, titlesize = 24.0f0)
 
+        # Deactivate zoom via scroll
+        deactivate_interaction!(ax, :scrollzoom)
+
         # Load simulation data
         simdir = ClimaAnalysis.SimDir(path)
         vars = collect(keys(simdir.vars))
         var_menu = Bonito.Dropdown(vars)
         var_selected = var_menu.value
 
-        # Initialize with first variable
+        # Initialize with selected variable
         initial_var = get(simdir, var_selected[])
         lon = initial_var.dims["lon"]
         lat = initial_var.dims["lat"]
@@ -26,22 +29,35 @@ function dashboard(path)
         time_slider = Bonito.StylableSlider(1:length(times))
         time_selected = time_slider.value
 
+        # Time value label - use Observable for content
+        value_style = Bonito.Styles("font-size" => "1.5rem", "margin-left" => "10px", "min-width" => "100px")
+        time_value_text = Observable(Dates.format(dates_array[time_selected[]], "u yyyy"))
+        time_value_label = Bonito.Label(time_value_text; style = value_style)
+
         # Observable for current variable
         var = Observable{OutputVarAny}(initial_var)
-        var_sliced = Observable(var_slice(var[], time_selected[]))
-        limits = Observable(get_limits(var[], time_selected[]))
 
         # Height slider (may not apply to all variables)
         heights = has_height(var[]) ? var[].dims["z"] : Float64[]
+        # Initialize to highest value (last index)
+        initial_height_idx = max(1, length(heights))
         height_slider = Bonito.StylableSlider(1:max(1, length(heights)))
+        height_slider.value[] = initial_height_idx
         height_selected = height_slider.value
+
+        # Height value label - use Observable for content
+        height_value_text = Observable(has_height(var[]) ? string(round(heights[height_selected[]], digits=1), " m") : "N/A")
+        height_value_label = Bonito.Label(height_value_text; style = value_style)
+
+        var_sliced = Observable(var_slice(var[], time_selected[]; height_selected = height_selected[]))
+        limits = Observable(get_limits(var[], time_selected[]; height_selected = height_selected[]))
 
         # Location observables (before plotting so we can use them)
         lon_profile = Observable(-118.25)  # Los Angeles
         lat_profile = Observable(34.05)    # Los Angeles
 
         # Surface plot
-        surface_var(var_sliced, limits; fig, ax, lon, lat)
+        surface_var(var_sliced, limits, var; fig, ax, lon, lat)
         lines!(ax, GeoMakie.coastlines(), color = :black)
 
         # Add marker on map showing current location
@@ -71,25 +87,29 @@ function dashboard(path)
                          xlabelsize = 20, ylabelsize = 20,
                          xticklabelsize = 18, yticklabelsize = 18,
                          titlesize = 24)
+
+        # Deactivate zoom via scroll
+        deactivate_interaction!(ax_profile, :scrollzoom)
+
         profile = Observable(has_height(var[]) ? get_profile(var[], lon_profile[], lat_profile[], time_selected[]) : Float64[])
         profile_limits = Observable(has_height(var[]) ? get_limits(var[], time_selected[]; height_selected = height_selected[], low_q = 0.0, high_q = 1.0) : (0.0, 1.0))
 
-        if has_height(var[])
-            lines!(ax_profile, profile, heights, color = :black, linewidth = 3)
-            xlims!(ax_profile, profile_limits[])
-            # Add horizontal line showing current height
-            current_height = Observable(heights[height_selected[]])
-            hlines!(ax_profile, current_height, color = :grey, linestyle = :dash, linewidth = 2)
-        end
+        current_height = Observable(has_height(var[]) ? heights[height_selected[]] : 0.0)
+
+        # Create profile plot elements (always create them, control visibility later)
+        profile_lines = lines!(ax_profile, profile, heights, color = :black, linewidth = 3, visible = has_height(var[]))
+        xlims!(ax_profile, profile_limits[])
+        profile_hlines = hlines!(ax_profile, current_height, color = :grey, linestyle = :dash, linewidth = 2, visible = has_height(var[]))
 
         # Time series figure with date formatting
         fig_timeseries = Figure(size = (800, 500))
         timeseries_ylabel = Observable(string(ClimaAnalysis.short_name(var[]), " [", ClimaAnalysis.units(var[]), "]"))
         timeseries_title = Observable(has_height(var[]) ?
             string(ClimaAnalysis.short_name(var[]), " - Time Series\n",
-                   Dates.format(dates_array[time_selected[]], "U yyyy"), ", Height: ", round(heights[height_selected[]], digits=1), " m") :
+                   "Height: ", round(heights[height_selected[]], digits=1), " m, ",
+                   "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°") :
             string(ClimaAnalysis.short_name(var[]), " - Time Series\n",
-                   Dates.format(dates_array[time_selected[]], "U yyyy")))
+                   "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°"))
         ax_timeseries = Axis(fig_timeseries[1, 1],
                             xlabel = "", ylabel = timeseries_ylabel,
                             title = timeseries_title,
@@ -97,6 +117,9 @@ function dashboard(path)
                             xticklabelsize = 18, yticklabelsize = 18,
                             titlesize = 24,
                             xticklabelrotation = π/4)
+
+        # Deactivate zoom via scroll
+        deactivate_interaction!(ax_timeseries, :scrollzoom)
 
         # Use numeric indices for plotting
         time_indices = 1:length(dates_array)
@@ -139,6 +162,14 @@ function dashboard(path)
                     "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°"
                 )
 
+                # Update time series title with new location
+                timeseries_title[] = has_height(var[]) ?
+                    string(ClimaAnalysis.short_name(var[]), " - Time Series\n",
+                           "Height: ", round(heights[height_selected[]], digits=1), " m, ",
+                           "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°") :
+                    string(ClimaAnalysis.short_name(var[]), " - Time Series\n",
+                           "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°")
+
                 # Update time series
                 timeseries[] = get_timeseries(var[], lon_profile[], lat_profile[]; height_selected = height_selected[])
                 autolimits!(ax_timeseries)
@@ -150,6 +181,14 @@ function dashboard(path)
         # Variable selection handler
         on(var_menu.value) do v
             var[] = get(simdir, v)
+
+            # Update heights for new variable
+            heights = has_height(var[]) ? var[].dims["z"] : Float64[]
+            # Reset to highest height when switching variables
+            if has_height(var[])
+                height_slider.value[] = length(heights)
+            end
+
             var_sliced[] = var_slice(var[], time_selected[]; height_selected = height_selected[])
             limits[] = get_limits(var[], time_selected[]; height_selected = height_selected[])
 
@@ -172,20 +211,13 @@ function dashboard(path)
             tick_labels = [Dates.format(dates_array[i], "u yyyy") for i in tick_indices]
             ax_timeseries.xticks = (tick_indices, tick_labels)
 
-            # Update height slider if needed
-            if has_height(var[])
-                heights = var[].dims["z"]
-                timeseries_title[] = string(
-                    ClimaAnalysis.short_name(var[]), " - Time Series\n",
-                    Dates.format(dates_array[time_selected[]], "U yyyy"), ", Height: ", round(heights[height_selected[]], digits=1), " m"
-                )
-                # Note: Slider range update might need special handling in Bonito
-            else
-                timeseries_title[] = string(
-                    ClimaAnalysis.short_name(var[]), " - Time Series\n",
-                    Dates.format(dates_array[time_selected[]], "U yyyy")
-                )
-            end
+            # Update timeseries title
+            timeseries_title[] = has_height(var[]) ?
+                string(ClimaAnalysis.short_name(var[]), " - Time Series\n",
+                       "Height: ", round(heights[height_selected[]], digits=1), " m, ",
+                       "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°") :
+                string(ClimaAnalysis.short_name(var[]), " - Time Series\n",
+                       "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°")
 
             # Update profile title
             profile_title[] = string(
@@ -193,6 +225,17 @@ function dashboard(path)
                 Dates.format(dates_array[time_selected[]], "U yyyy"), ", ",
                 "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°"
             )
+
+            # Show/hide profile figure based on whether variable has height
+            profile_lines.visible = has_height(var[])
+            profile_hlines.visible = has_height(var[])
+
+            # Update height value label
+            if has_height(var[])
+                height_value_text[] = string(round(heights[height_selected[]], digits=1), " m")
+            else
+                height_value_text[] = "N/A"
+            end
 
             # Update profile and timeseries
             if has_height(var[])
@@ -218,19 +261,15 @@ function dashboard(path)
             # Update vertical line position in timeseries (using index)
             current_time_index[] = t
 
+            # Update time value label
+            time_value_text[] = Dates.format(dates_array[t], "u yyyy")
+
             # Update profile title with new date
             profile_title[] = string(
                 ClimaAnalysis.short_name(var[]), " - Vertical Profile\n",
                 Dates.format(dates_array[t], "U yyyy"), ", ",
                 "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°"
             )
-
-            # Update timeseries title with new date
-            timeseries_title[] = has_height(var[]) ?
-                string(ClimaAnalysis.short_name(var[]), " - Time Series\n",
-                       Dates.format(dates_array[t], "U yyyy"), ", Height: ", round(heights[height_selected[]], digits=1), " m") :
-                string(ClimaAnalysis.short_name(var[]), " - Time Series\n",
-                       Dates.format(dates_array[t], "U yyyy"))
 
             if has_height(var[])
                 profile[] = get_profile(var[], lon_profile[], lat_profile[], t)
@@ -251,6 +290,11 @@ function dashboard(path)
             timeseries[] = get_timeseries(var[], lon_profile[], lat_profile[]; height_selected = h)
             autolimits!(ax_timeseries)
 
+            # Update height value label
+            if has_height(var[])
+                height_value_text[] = string(round(heights[h], digits=1), " m")
+            end
+
             # Update profile limits and current height line
             if has_height(var[])
                 profile_limits[] = get_limits(var[], time_selected[]; height_selected = h, low_q = 0.0, high_q = 1.0)
@@ -258,9 +302,24 @@ function dashboard(path)
                 # Update timeseries title with new height
                 timeseries_title[] = string(
                     ClimaAnalysis.short_name(var[]), " - Time Series\n",
-                    Dates.format(dates_array[time_selected[]], "U yyyy"), ", Height: ", round(heights[h], digits=1), " m"
+                    "Height: ", round(heights[h], digits=1), " m, ",
+                    "Lon: ", round(lon_profile[], digits=2), "°, Lat: ", round(lat_profile[], digits=2), "°"
                 )
             end
+        end
+
+        # Animation speed slider (0 to 0.3 seconds)
+        speed_slider = Bonito.StylableSlider(range(0.0, 0.3, length=31))
+        speed_slider.value[] = 0.1  # Default speed
+        speed_selected = speed_slider.value
+
+        # Speed value label - use Observable for content
+        speed_value_text = Observable(string(round(speed_selected[], digits=2), " s"))
+        speed_value_label = Bonito.Label(speed_value_text; style = value_style)
+
+        # Update speed value label when slider changes
+        on(speed_slider.value) do s
+            speed_value_text[] = string(round(s, digits=2), " s")
         end
 
         # Play button
@@ -285,11 +344,17 @@ function dashboard(path)
                 # Update time slider value to move the vertical line
                 time_slider.value[] = t
 
-                sleep(0.1)
+                sleep(speed_selected[])
             end
         end
 
-        return layout(var_menu, time_slider, height_slider, play_button, fig, fig_profile, fig_timeseries)
+        # Set initial visibility based on whether initial variable has height
+        profile_lines.visible = has_height(var[])
+        profile_hlines.visible = has_height(var[])
+
+        return layout(var_menu, time_slider, height_slider, play_button, speed_slider,
+                     fig, fig_profile, fig_timeseries, has_height(var[]), profile_lines, profile_hlines,
+                     time_value_label, height_value_label, speed_value_label)
     end
 
     IPa = "127.0.0.1"

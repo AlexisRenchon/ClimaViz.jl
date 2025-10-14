@@ -60,15 +60,39 @@ mutable struct AppState
 end
 
 # Check if variable has height dimension
-has_height(var) = haskey(var.dims, "z")
+has_height(var) = haskey(var.dims, "z") || haskey(var.dims, "z_reference")
+
+# Get the height dimension name (either "z" or "z_reference")
+function get_height_dim_name(var)
+    if haskey(var.dims, "z")
+        return "z"
+    elseif haskey(var.dims, "z_reference")
+        return "z_reference"
+    else
+        error("Variable has no height dimension (neither 'z' nor 'z_reference')")
+    end
+end
 
 # Slice variable at time and optionally height
 function var_slice(var::OutputVar4D, time_selected; height_selected = 1)
-    var_t = ClimaAnalysis.slice(
-        var,
-        time = var.dims["time"][time_selected],
-        z = var.dims["z"][height_selected]
-    )
+    # Extra safety: verify height dimension exists
+    if !has_height(var)
+        error("Variable claims to be 4D but has no height dimension")
+    end
+    z_dim = get_height_dim_name(var)
+    if z_dim == "z"
+        var_t = ClimaAnalysis.slice(
+            var,
+            time = var.dims["time"][time_selected],
+            z = var.dims["z"][height_selected]
+        )
+    else # z_reference
+        var_t = ClimaAnalysis.slice(
+            var,
+            time = var.dims["time"][time_selected],
+            z_reference = var.dims["z_reference"][height_selected]
+        )
+    end
     return var_t.data
 end
 
@@ -77,9 +101,41 @@ function var_slice(var::OutputVar3D, time_selected; height_selected = 1)
     return var_t.data
 end
 
+# Generic fallback that uses has_height check
+function var_slice(var, time_selected; height_selected = 1)
+    if has_height(var)
+        z_dim = get_height_dim_name(var)
+        if z_dim == "z"
+            var_t = ClimaAnalysis.slice(
+                var,
+                time = var.dims["time"][time_selected],
+                z = var.dims["z"][height_selected]
+            )
+        else # z_reference
+            var_t = ClimaAnalysis.slice(
+                var,
+                time = var.dims["time"][time_selected],
+                z_reference = var.dims["z_reference"][height_selected]
+            )
+        end
+    else
+        var_t = ClimaAnalysis.slice(var, time = var.dims["time"][time_selected])
+    end
+    return var_t.data
+end
+
 # Get color limits based on quantiles
 function get_limits(var::OutputVar4D, time_selected; height_selected = 1, low_q = 0.02, high_q = 0.98)
-    var_allt = ClimaAnalysis.slice(var, z = var.dims["z"][height_selected])
+    # Extra safety: verify height dimension exists
+    if !has_height(var)
+        error("Variable claims to be 4D but has no height dimension")
+    end
+    z_dim = get_height_dim_name(var)
+    if z_dim == "z"
+        var_allt = ClimaAnalysis.slice(var, z = var.dims["z"][height_selected])
+    else # z_reference
+        var_allt = ClimaAnalysis.slice(var, z_reference = var.dims["z_reference"][height_selected])
+    end
     data = filter(!isnan, vec(var_allt.data))
     return (Statistics.quantile(data, low_q), Statistics.quantile(data, high_q))
 end
@@ -90,8 +146,25 @@ function get_limits(var::OutputVar3D, time_selected; height_selected = 1, low_q 
     return (Statistics.quantile(data, low_q), Statistics.quantile(data, high_q))
 end
 
+# Generic fallback
+function get_limits(var, time_selected; height_selected = 1, low_q = 0.02, high_q = 0.98)
+    if has_height(var)
+        z_dim = get_height_dim_name(var)
+        if z_dim == "z"
+            var_allt = ClimaAnalysis.slice(var, z = var.dims["z"][height_selected])
+        else # z_reference
+            var_allt = ClimaAnalysis.slice(var, z_reference = var.dims["z_reference"][height_selected])
+        end
+    else
+        var_allt = ClimaAnalysis.slice(var)
+    end
+    data = filter(!isnan, vec(var_allt.data))
+    return (Statistics.quantile(data, low_q), Statistics.quantile(data, high_q))
+end
+
 # Get vertical profile at location
 function get_profile(var::OutputVar4D, lon, lat, time_selected)
+    z_dim = get_height_dim_name(var)
     var_profile = ClimaAnalysis.slice(
         var,
         lon = lon,
@@ -103,12 +176,22 @@ end
 
 # Get time series at location (and optionally height)
 function get_timeseries(var::OutputVar4D, lon, lat; height_selected = 1)
-    var_ts = ClimaAnalysis.slice(
-        var,
-        lon = lon,
-        lat = lat,
-        z = var.dims["z"][height_selected]
-    )
+    z_dim = get_height_dim_name(var)
+    if z_dim == "z"
+        var_ts = ClimaAnalysis.slice(
+            var,
+            lon = lon,
+            lat = lat,
+            z = var.dims["z"][height_selected]
+        )
+    else # z_reference
+        var_ts = ClimaAnalysis.slice(
+            var,
+            lon = lon,
+            lat = lat,
+            z_reference = var.dims["z_reference"][height_selected]
+        )
+    end
     return var_ts.data
 end
 

@@ -32,19 +32,28 @@ end
 # Handle variable menu selection
 function setup_variable_handler(var_menu, height_slider, state::AppState)
     on(var_menu.value) do v
-        state.var[] = get(state.simdir, v)
+        new_var = get(state.simdir, v)
+
+        # Update the variable in state
+        state.var[] = new_var
 
         # Update heights for new variable
-        heights_new = has_height(state.var[]) ? state.var[].dims["z"] : Float64[]
-        # Reset to highest height when switching variables
-        if has_height(state.var[])
-            height_slider.value[] = length(heights_new)
-        end
-
-        # Update heights reference
+        heights_new = has_height(new_var) ? new_var.dims[get_height_dim_name(new_var)] : Float64[]
         empty!(state.heights)
         append!(state.heights, heights_new)
 
+        # First, set index to 1 (always safe)
+        height_slider.index[] = 1
+
+        # Update the slider values (the available options)
+        new_values = collect(1:max(1, length(heights_new)))
+        height_slider.values[] = new_values
+
+        # Now set slider to the desired index
+        new_height_idx = has_height(new_var) ? length(heights_new) : 1
+        height_slider.index[] = new_height_idx
+
+        # Update visualization
         state.var_sliced[] = var_slice(state.var[], state.time_selected[]; height_selected = state.height_selected[])
         state.limits[] = get_limits(state.var[], state.time_selected[]; height_selected = state.height_selected[])
 
@@ -89,6 +98,7 @@ function setup_variable_handler(var_menu, height_slider, state::AppState)
             state.profile[] = get_profile(state.var[], state.lon_profile[], state.lat_profile[], state.time_selected[])
             state.profile_limits[] = get_limits(state.var[], state.time_selected[]; height_selected = state.height_selected[], low_q = 0.0, high_q = 1.0)
             xlims!(state.ax_profile, state.profile_limits[])
+            state.current_height[] = state.heights[state.height_selected[]]
         end
         state.timeseries[] = get_timeseries(state.var[], state.lon_profile[], state.lat_profile[]; height_selected = state.height_selected[])
         autolimits!(state.ax_timeseries)
@@ -125,29 +135,28 @@ end
 # Handle height slider changes
 function setup_height_handler(height_slider, state::AppState)
     on(height_slider.value) do h
+        # Guard against invalid height indices
+        if !has_height(state.var[]) || h < 1 || h > length(state.heights)
+            return
+        end
+
         state.var_sliced[] = var_slice(state.var[], state.time_selected[]; height_selected = h)
         state.limits[] = get_limits(state.var[], state.time_selected[]; height_selected = h)
 
         # Update title with new height
-        if has_height(state.var[])
-            update_title_with_height(state, state.time_selected[], state.heights[h])
-        end
+        update_title_with_height(state, state.time_selected[], state.heights[h])
 
         # Update time series for new height
         state.timeseries[] = get_timeseries(state.var[], state.lon_profile[], state.lat_profile[]; height_selected = h)
         autolimits!(state.ax_timeseries)
 
         # Update height value label
-        if has_height(state.var[])
-            state.height_value_text[] = string(round(state.heights[h], digits=1), " m")
-        end
+        state.height_value_text[] = string(round(state.heights[h], digits=1), " m")
 
         # Update profile limits and current height line
-        if has_height(state.var[])
-            state.profile_limits[] = get_limits(state.var[], state.time_selected[]; height_selected = h, low_q = 0.0, high_q = 1.0)
-            state.current_height[] = state.heights[h]
-            state.timeseries_title[] = timeseries_title_string(state.var[], state.heights, h, state.lon_profile[], state.lat_profile[])
-        end
+        state.profile_limits[] = get_limits(state.var[], state.time_selected[]; height_selected = h, low_q = 0.0, high_q = 1.0)
+        state.current_height[] = state.heights[h]
+        state.timeseries_title[] = timeseries_title_string(state.var[], state.heights, h, state.lon_profile[], state.lat_profile[])
     end
 end
 

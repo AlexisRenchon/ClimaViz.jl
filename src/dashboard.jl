@@ -24,8 +24,10 @@ function dashboard(path)
         time_slider = Bonito.StylableSlider(1:length(times))
         time_selected = time_slider.value
 
-        heights = has_height(var[]) ? var[].dims["z"] : Float64[]
+        heights = has_height(var[]) ? var[].dims[get_height_dim_name(var[])] : Float64[]
         initial_height_idx = max(1, length(heights))
+
+        # Create height slider with initial range
         height_slider = Bonito.StylableSlider(1:max(1, length(heights)))
         height_slider.value[] = initial_height_idx
         height_selected = height_slider.value

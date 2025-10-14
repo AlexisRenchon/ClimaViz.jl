@@ -37,15 +37,15 @@ function dashboard(path)
         play_button = Bonito.Button("Play")
 
         # Create value labels
-        value_style = Bonito.Styles("font-size" => "1.5rem", "margin-left" => "10px", "min-width" => "100px")
+        value_style = Bonito.Styles("font-size" => "1.5rem") #, "margin-left" => "10px", "min-width" => "100px")
         time_value_text = Observable(Dates.format(dates_array[time_selected[]], "u yyyy"))
-        time_value_label = Bonito.Label(time_value_text; style = value_style)
+        time_value_label = Bonito.DOM.h1(time_value_text; style = value_style)
 
         height_value_text = Observable(has_height(var[]) ? string(round(heights[height_selected[]], digits=1), " m") : "N/A")
-        height_value_label = Bonito.Label(height_value_text; style = value_style)
+        height_value_label = Bonito.DOM.h1(height_value_text; style = value_style)
 
         speed_value_text = Observable(string(round(speed_selected[], digits=2), " s"))
-        speed_value_label = Bonito.Label(speed_value_text; style = value_style)
+        speed_value_label = Bonito.DOM.h1(speed_value_text; style = value_style)
 
         # Create data observables
         var_sliced = Observable(var_slice(var[], time_selected[]; height_selected = height_selected[]))

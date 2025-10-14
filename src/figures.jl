@@ -44,7 +44,7 @@ function create_main_figure(var, var_sliced, limits, lon, lat, lon_profile, lat_
              width = 15,
              ticklabelsize = 20.0,
              label = colorbar_label,
-             labelsize = 20.0
+             labelsize = 30.0
             )
 
     # Update colorbar label when variable changes

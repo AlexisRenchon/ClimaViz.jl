@@ -1,6 +1,6 @@
 export layout
 
-function layout(var_menu, time_slider, height_slider, play_button, speed_slider,
+function layout(var_menu, reduction_menu, period_menu, time_slider, height_slider, play_button, speed_slider,
                 fig, fig_profile, fig_timeseries, show_height, profile_lines, profile_hlines,
                 time_value_label, height_value_label, speed_value_label)
     label_style = Bonito.Styles("font-size" => "1.5rem")
@@ -29,6 +29,14 @@ function layout(var_menu, time_slider, height_slider, play_button, speed_slider,
             Bonito.Row(
                 Bonito.DOM.h1("Variable: "; style = label_style),
                 var_menu;
+            ),
+            Bonito.Row(
+                Bonito.DOM.h1("Reduction: "; style = label_style),
+                reduction_menu;
+            ),
+            Bonito.Row(
+                Bonito.DOM.h1("Period: "; style = label_style),
+                period_menu;
             ),
             Bonito.Row(
                 Bonito.DOM.h1("Time: "; style = label_style),

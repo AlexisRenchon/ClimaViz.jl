@@ -57,6 +57,9 @@ mutable struct AppState
 
     # Other
     n_ticks::Int
+
+    # Flag to prevent recursive updates
+    updating::Bool
 end
 
 # Check if variable has height dimension

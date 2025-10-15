@@ -198,8 +198,8 @@ function update_for_new_variable(state::AppState, new_var, heights_new)
     state.profile_title[] = profile_title_string(state.var[], state.dates_array, state.time_selected[], state.lon_profile[], state.lat_profile[])
 
     # Show/hide profile figure based on whether variable has height
-    state.profile_lines.visible = has_height(state.var[])
-    state.profile_hlines.visible = has_height(state.var[])
+    state.profile_lines.visible[] = has_height(state.var[])
+    state.profile_hlines.visible[] = has_height(state.var[])
 
     # Update height value label
     if has_height(state.var[])

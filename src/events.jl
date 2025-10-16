@@ -9,12 +9,26 @@ function setup_mouse_click_handler(fig, state::AppState)
             state.lon_profile[] = lonlat[1]
             state.lat_profile[] = lonlat[2]
 
+            println("\n=== MOUSE CLICK DEBUG ===")
+            println("Clicked at (lon, lat): $lonlat")
+            println("Variable has height: ", has_height(state.var[]))
+
             # Update profile if variable has height
             if has_height(state.var[])
                 state.profile[] = get_profile(state.var[], state.lon_profile[], state.lat_profile[], state.time_selected[])
-                state.profile_limits[] = get_limits(state.var[], state.time_selected[]; height_selected = state.height_selected[], low_q = 0.0, high_q = 1.0)
+                # Calculate limits across ALL times at this location
+                state.profile_limits[] = get_profile_limits_all_times(state.var[], state.lon_profile[], state.lat_profile[])
                 xlims!(state.ax_profile, state.profile_limits[])
+
+                println("Heights: ", state.heights)
+                println("Profile data length: ", length(state.profile[]))
+                println("Profile data: ", state.profile[])
+                println("Profile lines visible: ", state.profile_lines.visible[])
+                println("Profile hlines visible: ", state.profile_hlines.visible[])
+            else
+                println("No height dimension - skipping profile update")
             end
+            println("========================\n")
 
             # Update titles with new location
             state.profile_title[] = profile_title_string(state.var[], state.dates_array, state.time_selected[], state.lon_profile[], state.lat_profile[])
@@ -23,19 +37,20 @@ function setup_mouse_click_handler(fig, state::AppState)
             # Update time series
             state.timeseries[] = get_timeseries(state.var[], state.lon_profile[], state.lat_profile[]; height_selected = state.height_selected[])
             autolimits!(state.ax_timeseries)
-
-            println("Clicked at (lon, lat): $lonlat")
         end
     end
 end
 
 # Handle variable menu selection
-function setup_variable_handler(var_menu, reduction_menu, period_menu, height_slider, state::AppState)
+function setup_variable_handler(var_menu, reduction_menu, period_menu, height_slider, state::AppState, heights_obs)
     on(var_menu.value) do v
         # Set flag to prevent other handlers from firing
         state.updating = true
 
         try
+            println("\n=== VARIABLE CHANGE DEBUG ===")
+            println("New variable: $v")
+
             # Get available reductions for this variable
             available_reductions = collect(keys(state.simdir.vars[v]))
 
@@ -65,8 +80,12 @@ function setup_variable_handler(var_menu, reduction_menu, period_menu, height_sl
             # Get the new variable
             new_var = get(state.simdir; short_name = v, reduction = first_reduction, period = first_period)
 
+            println("New variable has height: ", has_height(new_var))
+
             # Update heights and slider
             heights_new = has_height(new_var) ? new_var.dims[get_height_dim_name(new_var)] : Float64[]
+
+            println("New heights: ", heights_new)
 
             # Update height slider
             # First, set index to 1 (always safe)
@@ -81,7 +100,11 @@ function setup_variable_handler(var_menu, reduction_menu, period_menu, height_sl
             height_slider.index[] = new_height_idx
 
             # Update all variable state
-            update_for_new_variable(state, new_var, heights_new)
+            update_for_new_variable(state, new_var, heights_new, heights_obs)
+
+            println("After update - Profile lines visible: ", state.profile_lines.visible[])
+            println("After update - Profile hlines visible: ", state.profile_hlines.visible[])
+            println("=============================\n")
         finally
             # Always reset the flag
             state.updating = false
@@ -90,7 +113,7 @@ function setup_variable_handler(var_menu, reduction_menu, period_menu, height_sl
 end
 
 # Handle reduction menu selection
-function setup_reduction_handler(reduction_menu, period_menu, state::AppState)
+function setup_reduction_handler(reduction_menu, period_menu, state::AppState, heights_obs)
     on(reduction_menu.value) do reduction
         # Skip if we're in the middle of updating
         if state.updating
@@ -123,7 +146,7 @@ function setup_reduction_handler(reduction_menu, period_menu, state::AppState)
             heights_new = has_height(new_var) ? new_var.dims[get_height_dim_name(new_var)] : Float64[]
 
             # Update everything (reuse the same logic from variable handler)
-            update_for_new_variable(state, new_var, heights_new)
+            update_for_new_variable(state, new_var, heights_new, heights_obs)
         finally
             state.updating = false
         end
@@ -131,7 +154,7 @@ function setup_reduction_handler(reduction_menu, period_menu, state::AppState)
 end
 
 # Handle period menu selection
-function setup_period_handler(period_menu, reduction_menu, state::AppState)
+function setup_period_handler(period_menu, reduction_menu, state::AppState, heights_obs)
     on(period_menu.value) do period
         # Skip if we're in the middle of updating
         if state.updating
@@ -152,7 +175,7 @@ function setup_period_handler(period_menu, reduction_menu, state::AppState)
             heights_new = has_height(new_var) ? new_var.dims[get_height_dim_name(new_var)] : Float64[]
 
             # Update everything
-            update_for_new_variable(state, new_var, heights_new)
+            update_for_new_variable(state, new_var, heights_new, heights_obs)
         finally
             state.updating = false
         end
@@ -160,13 +183,28 @@ function setup_period_handler(period_menu, reduction_menu, state::AppState)
 end
 
 # Helper function to update all state when variable changes
-function update_for_new_variable(state::AppState, new_var, heights_new)
+function update_for_new_variable(state::AppState, new_var, heights_new, heights_obs)
+    println("\n--- UPDATE FOR NEW VARIABLE ---")
+    println("Has height: ", has_height(new_var))
+    println("Heights new: ", heights_new)
+
     # Update the variable in state
     state.var[] = new_var
 
     # Update heights for new variable
     empty!(state.heights)
     append!(state.heights, heights_new)
+
+    # CRITICAL: Update the heights observable so the plot updates
+    if length(heights_new) > 0
+        heights_obs[] = collect(heights_new)
+        println("Updated heights_obs to: ", heights_obs[])
+    else
+        heights_obs[] = [0.0]
+        println("Updated heights_obs to dummy: ", heights_obs[])
+    end
+
+    println("State heights after update: ", state.heights)
 
     # Update visualization
     state.var_sliced[] = var_slice(state.var[], state.time_selected[]; height_selected = state.height_selected[])
@@ -197,10 +235,6 @@ function update_for_new_variable(state::AppState, new_var, heights_new)
     state.timeseries_title[] = timeseries_title_string(state.var[], state.heights, state.height_selected[], state.lon_profile[], state.lat_profile[])
     state.profile_title[] = profile_title_string(state.var[], state.dates_array, state.time_selected[], state.lon_profile[], state.lat_profile[])
 
-    # Show/hide profile figure based on whether variable has height
-    state.profile_lines.visible = has_height(state.var[])
-    state.profile_hlines.visible = has_height(state.var[])
-
     # Update height value label
     if has_height(state.var[])
         state.height_value_text[] = string(round(state.heights[state.height_selected[]], digits=1), " m")
@@ -211,12 +245,36 @@ function update_for_new_variable(state::AppState, new_var, heights_new)
     # Update profile and timeseries
     if has_height(state.var[])
         state.profile[] = get_profile(state.var[], state.lon_profile[], state.lat_profile[], state.time_selected[])
-        state.profile_limits[] = get_limits(state.var[], state.time_selected[]; height_selected = state.height_selected[], low_q = 0.0, high_q = 1.0)
+        # Calculate limits across ALL times at this location for stable visualization
+        state.profile_limits[] = get_profile_limits_all_times(state.var[], state.lon_profile[], state.lat_profile[])
         xlims!(state.ax_profile, state.profile_limits[])
         state.current_height[] = state.heights[state.height_selected[]]
+
+        println("Profile data: ", state.profile[])
+        println("Profile limits: ", state.profile_limits[])
+        println("Current height: ", state.current_height[])
+
+        # Show profile figure when variable has height
+        println("Setting profile visibility to TRUE")
+        state.profile_lines.visible = true
+        state.profile_hlines.visible = true
+
+        # Force axis update
+        autolimits!(state.ax_profile)
+        xlims!(state.ax_profile, state.profile_limits[])
+
+        println("Profile lines visible after setting: ", state.profile_lines.visible[])
+        println("Profile hlines visible after setting: ", state.profile_hlines.visible[])
+    else
+        println("Setting profile visibility to FALSE")
+        # Hide profile figure when variable has no height
+        state.profile_lines.visible = false
+        state.profile_hlines.visible = false
     end
     state.timeseries[] = get_timeseries(state.var[], state.lon_profile[], state.lat_profile[]; height_selected = state.height_selected[])
     autolimits!(state.ax_timeseries)
+
+    println("-------------------------------\n")
 end
 
 # Handle time slider changes
@@ -241,6 +299,7 @@ function setup_time_handler(time_slider, state::AppState)
         state.profile_title[] = profile_title_string(state.var[], state.dates_array, t, state.lon_profile[], state.lat_profile[])
 
         if has_height(state.var[])
+            # Update profile data but NOT the limits (limits stay fixed for animation)
             state.profile[] = get_profile(state.var[], state.lon_profile[], state.lat_profile[], t)
         end
     end
@@ -267,8 +326,8 @@ function setup_height_handler(height_slider, state::AppState)
         # Update height value label
         state.height_value_text[] = string(round(state.heights[h], digits=1), " m")
 
-        # Update profile limits and current height line
-        state.profile_limits[] = get_limits(state.var[], state.time_selected[]; height_selected = h, low_q = 0.0, high_q = 1.0)
+        # Update profile limits directly from current profile data (don't recalculate)
+        # The profile doesn't change when height changes, so we don't need to update limits
         state.current_height[] = state.heights[h]
         state.timeseries_title[] = timeseries_title_string(state.var[], state.heights, h, state.lon_profile[], state.lat_profile[])
     end
@@ -297,6 +356,7 @@ function setup_play_handler(play_button, time_slider, state::AppState)
             end
 
             if has_height(state.var[])
+                # Update profile data but NOT the limits (limits stay fixed for animation)
                 state.profile[] = get_profile(state.var[], state.lon_profile[], state.lat_profile[], t)
             end
 

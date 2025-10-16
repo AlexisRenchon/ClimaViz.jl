@@ -76,12 +76,16 @@ function create_profile_figure(var, heights, profile, profile_limits, current_he
     # Deactivate zoom via scroll
     deactivate_interaction!(ax_profile, :scrollzoom)
 
-    # Create profile plot elements
-    profile_lines = lines!(ax_profile, profile, heights, color = :black, linewidth = 3, visible = has_height(var[]))
+    # Create observable for heights so it can be updated
+    heights_obs = Observable(length(heights) > 0 ? heights : [0.0])
+
+    # Create profile plot elements with observable heights
+    profile_lines = lines!(ax_profile, profile, heights_obs, color = :black, linewidth = 3, visible = has_height(var[]))
     xlims!(ax_profile, profile_limits[])
     profile_hlines = hlines!(ax_profile, current_height, color = :grey, linestyle = :dash, linewidth = 2, visible = has_height(var[]))
 
-    return fig_profile, ax_profile, profile_xlabel, profile_lines, profile_hlines
+    fig_profile
+    return fig_profile, ax_profile, profile_xlabel, profile_lines, profile_hlines, heights_obs
 end
 
 # Create time series figure

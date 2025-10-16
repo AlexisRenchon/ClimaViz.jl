@@ -72,9 +72,18 @@ function dashboard(path)
         lon_profile = Observable(-118.25)  # Los Angeles
         lat_profile = Observable(34.05)    # Los Angeles
 
-        profile = Observable(has_height(var[]) ? get_profile(var[], lon_profile[], lat_profile[], time_selected[]) : Float64[])
-        profile_limits = Observable(has_height(var[]) ? get_limits(var[], time_selected[]; height_selected = height_selected[], low_q = 0.0, high_q = 1.0) : (0.0, 1.0))
-        current_height = Observable(has_height(var[]) ? heights[height_selected[]] : 0.0)
+        # Initialize profile with dummy data if no height dimension
+        # This ensures the plot elements are created properly
+        if has_height(var[])
+            profile = Observable(get_profile(var[], lon_profile[], lat_profile[], time_selected[]))
+            profile_limits = Observable(get_limits(var[], time_selected[]; height_selected = height_selected[], low_q = 0.0, high_q = 1.0))
+            current_height = Observable(heights[height_selected[]])
+        else
+            # Use dummy data for initialization - single point to create valid plot
+            profile = Observable([0.0])
+            profile_limits = Observable((0.0, 1.0))
+            current_height = Observable(0.0)
+        end
 
         timeseries = Observable(get_timeseries(var[], lon_profile[], lat_profile[]; height_selected = height_selected[]))
 
@@ -85,7 +94,7 @@ function dashboard(path)
         # Create figures
         fig, ax, title = create_main_figure(var, var_sliced, limits, lon, lat, lon_profile, lat_profile)
 
-        fig_profile, ax_profile, profile_xlabel, profile_lines, profile_hlines =
+        fig_profile, ax_profile, profile_xlabel, profile_lines, profile_hlines, heights_obs =
             create_profile_figure(var, heights, profile, profile_limits, current_height, profile_title, time_selected)
 
         fig_timeseries, ax_timeseries, timeseries_ylabel, current_time_index, n_ticks =
@@ -104,6 +113,10 @@ function dashboard(path)
             false  # updating flag
         )
 
+        # Store heights_obs in a way we can access it
+        # We'll add it as a field access pattern
+        state_with_heights_obs = (state = state, heights_obs = heights_obs)
+
         # Update main title using state
         if has_height(var[])
             update_title_with_height(state, time_selected[], heights[height_selected[]])
@@ -111,11 +124,11 @@ function dashboard(path)
             update_title(state, time_selected[])
         end
 
-        # Set up all event handlers
+        # Set up all event handlers - pass heights_obs to handlers that need it
         setup_mouse_click_handler(fig, state)
-        setup_variable_handler(var_menu, reduction_menu, period_menu, height_slider, state)
-        setup_reduction_handler(reduction_menu, period_menu, state)
-        setup_period_handler(period_menu, reduction_menu, state)
+        setup_variable_handler(var_menu, reduction_menu, period_menu, height_slider, state, heights_obs)
+        setup_reduction_handler(reduction_menu, period_menu, state, heights_obs)
+        setup_period_handler(period_menu, reduction_menu, state, heights_obs)
         setup_time_handler(time_slider, state)
         setup_height_handler(height_slider, state)
         setup_speed_handler(speed_slider, state)

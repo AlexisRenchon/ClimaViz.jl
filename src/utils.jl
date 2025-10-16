@@ -11,6 +11,28 @@ const OutputVar4D = Union{
 
 const OutputVarAny = Union{OutputVar3D, OutputVar4D}
 
+# Calculate profile limits from profile data with padding
+function get_profile_limits(profile_data; padding_fraction = 0.05)
+    profile_min = minimum(profile_data)
+    profile_max = maximum(profile_data)
+    # Add some padding (5% on each side by default)
+    padding = (profile_max - profile_min) * padding_fraction
+    return (profile_min - padding, profile_max + padding)
+end
+
+# Calculate profile limits across all times at a given location
+function get_profile_limits_all_times(var::OutputVar4D, lon, lat; padding_fraction = 0.05)
+    z_dim = get_height_dim_name(var)
+    # Slice at location only (keep all times and heights)
+    var_profile_all_times = ClimaAnalysis.slice(var, lon = lon, lat = lat)
+    # Get min/max across all the data
+    profile_min = minimum(var_profile_all_times.data)
+    profile_max = maximum(var_profile_all_times.data)
+    # Add padding
+    padding = (profile_max - profile_min) * padding_fraction
+    return (profile_min - padding, profile_max + padding)
+end
+
 # AppState struct to bundle all related observables and data
 mutable struct AppState
     # Data
